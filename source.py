@@ -7,9 +7,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import winreg
 import threading
-import json
 
-# Dicionário de Idiomas (Atualizado para refletir a detecção dinâmica)
+# Dicionário de Idiomas
 LANGUAGES = {
     'pt': {
         'title': 'PyCleaner Pro - Otimizador Dinâmico',
@@ -19,6 +18,7 @@ LANGUAGES = {
         'tab_tweaks': 'Ajustes do Sistema',
         'tab_about': 'Sobre',
         'btn_scan': 'Analisar e Limpar Disco',
+        'btn_cleanmgr': 'Abrir Cleanmgr Avançado',
         'btn_scan_apps': 'Escanear Apps UWP',
         'btn_scan_win32': 'Escanear Programas (Win32)',
         'btn_remove_bloat': 'Desinstalar Selecionados',
@@ -45,7 +45,7 @@ LANGUAGES = {
         'status_success': 'Operação concluída com sucesso!',
         'status_error': 'Erro: ',
         'admin_warn': 'Aviso: Execute como Administrador para acesso total.',
-        'about_text': "PyCleaner v2.1 (Advanced Edition)\n\nUtilitário de código aberto para limpeza e otimização do Windows.\n\nDesenvolvido por: Gregório Severiano (Dragoonie)\n\nLinguagem: Python + Tkinter"
+        'about_text': "PyCleaner v2.2 (Advanced Edition)\n\nUtilitário de código aberto para limpeza e otimização do Windows.\n\nDesenvolvido por: Gregório Severiano (Dragoonie)\n\nLinguagem: Python + Tkinter"
     },
     'en': {
         'title': 'PyCleaner Pro - Dynamic Optimizer',
@@ -55,6 +55,7 @@ LANGUAGES = {
         'tab_tweaks': 'System Tweaks',
         'tab_about': 'About',
         'btn_scan': 'Analyze and Clean Disk',
+        'btn_cleanmgr': 'Open Advanced Cleanmgr',
         'btn_scan_apps': 'Scan UWP Apps',
         'btn_scan_win32': 'Scan Programs (Win32)',
         'btn_remove_bloat': 'Uninstall Selected',
@@ -81,11 +82,10 @@ LANGUAGES = {
         'status_success': 'Operation completed successfully!',
         'status_error': 'Error: ',
         'admin_warn': 'Warning: Run as Administrator for full access.',
-        'about_text': "PyCleaner v2.1 (Advanced Edition)\n\nAn open-source utility for custom Windows optimization.\n\nDeveloped by: Gregório Severiano (Dragoonie)\n\nBuilt with Python and Tkinter"
+        'about_text': "PyCleaner v2.2 (Advanced Edition)\n\nAn open-source utility for custom Windows optimization.\n\nDeveloped by: Gregório Severiano (Dragoonie)\n\nBuilt with Python and Tkinter"
     }
 }
 
-# Expandido com mais alvos de MRU (Most Recently Used) e Históricos
 REG_TARGETS = [
     (winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU", "Run Command History"),
     (winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths", "Explorer Typed Paths"),
@@ -100,9 +100,9 @@ class PyCleanerApp:
         self.root = root
         self.current_lang = 'pt'
         self.is_admin = self.check_admin()
-        self.browser_vars = {} # Armazena os checkboxes dinâmicos dos navegadores
+        self.browser_vars = {}
         
-        self.root.geometry("800x600") # Altura levemente aumentada para acomodar a lista dinâmica
+        self.root.geometry("800x620")
         self.root.resizable(False, False)
         
         self.setup_ui()
@@ -113,7 +113,6 @@ class PyCleanerApp:
         except: return False
 
     def get_installed_browsers(self):
-        """Detecta quais navegadores estão realmente instalados no PC"""
         local = os.environ.get('LOCALAPPDATA', '')
         appdata = os.environ.get('APPDATA', '')
         browsers = {
@@ -127,7 +126,6 @@ class PyCleanerApp:
         return {name: path for name, path in browsers.items() if os.path.exists(path)}
 
     def setup_ui(self):
-        # Top Menu / Idioma
         lang_frame = ttk.Frame(self.root, padding=5)
         lang_frame.pack(fill='x')
         ttk.Label(lang_frame, text="Language:").pack(side='left', padx=5)
@@ -139,7 +137,6 @@ class PyCleanerApp:
         if not self.is_admin:
             ttk.Label(lang_frame, text="⚠️ No Admin Mode", foreground="orange", font=("Arial", 9, "bold")).pack(side='right', padx=10)
 
-        # Abas
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill='both', expand=True, padx=10, pady=5)
         
@@ -155,7 +152,7 @@ class PyCleanerApp:
         self.notebook.add(self.tab_tweaks, text="")
         self.notebook.add(self.tab_about, text="")
         
-        # --- TAB 1: DISK CLEANUP (DINÂMICO) ---
+        # --- TAB 1: DISK CLEANUP ---
         self.frame_sys = ttk.LabelFrame(self.tab_disk, padding=10)
         self.frame_sys.pack(fill='x', pady=5)
         
@@ -169,11 +166,10 @@ class PyCleanerApp:
         self.frame_browsers = ttk.LabelFrame(self.tab_disk, padding=10)
         self.frame_browsers.pack(fill='x', pady=10)
         
-        # Inserção dinâmica dos navegadores encontrados
         self.installed_browsers = self.get_installed_browsers()
         if self.installed_browsers:
             for name in self.installed_browsers:
-                var = tk.BooleanVar(value=True) # Ativado por padrão
+                var = tk.BooleanVar(value=True)
                 self.browser_vars[name] = var
                 ttk.Checkbutton(self.frame_browsers, text=name, variable=var).pack(anchor='w', pady=1)
         else:
@@ -188,8 +184,12 @@ class PyCleanerApp:
         self.chk_browser_data = ttk.Checkbutton(self.frame_browsers, variable=self.var_browser_data)
         self.chk_browser_data.pack(anchor='w', pady=2)
 
-        self.btn_disk = ttk.Button(self.tab_disk, command=self.run_disk_cleanup)
-        self.btn_disk.pack(pady=10)
+        btn_disk_frame = ttk.Frame(self.tab_disk)
+        btn_disk_frame.pack(pady=10)
+        self.btn_disk = ttk.Button(btn_disk_frame, command=self.run_disk_cleanup)
+        self.btn_disk.pack(side='left', padx=5)
+        self.btn_cleanmgr = ttk.Button(btn_disk_frame, command=self.run_cleanmgr)
+        self.btn_cleanmgr.pack(side='left', padx=5)
         
         # --- TAB 2: UNIVERSAL UNINSTALLER ---
         btn_frame_bloat = ttk.Frame(self.tab_bloat)
@@ -197,10 +197,8 @@ class PyCleanerApp:
         
         self.btn_scan_apps = ttk.Button(btn_frame_bloat, command=lambda: self.start_app_scan("UWP"))
         self.btn_scan_apps.pack(side='left', padx=5)
-        
         self.btn_scan_win32 = ttk.Button(btn_frame_bloat, command=lambda: self.start_app_scan("WIN32"))
         self.btn_scan_win32.pack(side='left', padx=5)
-        
         self.btn_remove_bloat = ttk.Button(btn_frame_bloat, command=self.remove_selected_apps, state='disabled')
         self.btn_remove_bloat.pack(side='right', padx=5)
         
@@ -214,7 +212,7 @@ class PyCleanerApp:
         self.app_tree.column('Command', width=0, stretch=tk.NO) 
         self.app_tree.heading('Type', text='Tipo')
 
-        # --- TAB 3: DYNAMIC REGISTRY ---
+        # --- TAB 3: REGISTRY ---
         btn_frame_reg = ttk.Frame(self.tab_reg)
         btn_frame_reg.pack(fill='x', pady=5)
         self.btn_scan_reg = ttk.Button(btn_frame_reg, command=self.scan_registry)
@@ -227,6 +225,9 @@ class PyCleanerApp:
         scrollbar_reg = ttk.Scrollbar(self.reg_tree, orient="vertical", command=self.reg_tree.yview)
         self.reg_tree.configure(yscrollcommand=scrollbar_reg.set)
         scrollbar_reg.pack(side='right', fill='y')
+        
+        self.reg_tree.heading('Category', text='Local')
+        self.reg_tree.heading('ValueName', text='Valor')
 
         # --- TAB 4: TWEAKS ---
         self.var_telemetry = tk.BooleanVar(value=True)
@@ -256,7 +257,6 @@ class PyCleanerApp:
         self.lbl_about = ttk.Label(self.tab_about, justify="center", font=("Arial", 11))
         self.lbl_about.pack(pady=50)
         
-        # Status Bar
         self.status_var = tk.StringVar()
         self.status_bar = ttk.Label(self.root, textvariable=self.status_var, relief='sunken', anchor='w', padding=5)
         self.status_bar.pack(fill='x', side='bottom')
@@ -283,6 +283,7 @@ class PyCleanerApp:
         self.chk_browser_cache.config(text=lang['disk_chk_browser_cache'])
         self.chk_browser_data.config(text=lang['disk_chk_browser_data'])
         self.btn_disk.config(text=lang['btn_scan'])
+        self.btn_cleanmgr.config(text=lang['btn_cleanmgr'])
         
         self.btn_scan_apps.config(text=lang['btn_scan_apps'])
         self.btn_scan_win32.config(text=lang['btn_scan_win32'])
@@ -305,7 +306,6 @@ class PyCleanerApp:
         self.lbl_about.config(text=lang['about_text'])
         self.status_var.set(lang['status_ready'] if self.is_admin else lang['admin_warn'])
 
-    # --- LÓGICA DINÂMICA: ESCANEAR UWP / WIN32 ---
     def start_app_scan(self, scan_type):
         lang = LANGUAGES[self.current_lang]
         self.status_var.set(lang['status_scanning'])
@@ -394,7 +394,7 @@ class PyCleanerApp:
             
         self.status_var.set(lang['status_success'])
 
-    # --- LÓGICA DINÂMICA: VARRER REGISTRO ---
+    # --- LÓGICA CORRIGIDA: VARRER REGISTRO ---
     def scan_registry(self):
         lang = LANGUAGES[self.current_lang]
         for item in self.reg_tree.get_children():
@@ -407,6 +407,7 @@ class PyCleanerApp:
                 for i in range(info[1]):
                     val_name, val_data, _ = winreg.EnumValue(key, i)
                     if val_name not in ["MRUList", "MRUListEx"]:
+                        # Armazena o subkey e o val_name explicitamente em tags para uso na exclusão
                         self.reg_tree.insert('', 'end', values=(category, f"{val_name} -> {str(val_data)[:40]}"), tags=(subkey, val_name))
                 winreg.CloseKey(key)
             except WindowsError: pass
@@ -414,6 +415,7 @@ class PyCleanerApp:
         self.btn_clean_reg.config(state='normal')
         self.status_var.set(lang['status_ready'])
 
+    # --- LÓGICA CORRIGIDA: LIMPAR REGISTRO ---
     def clean_selected_registry(self):
         lang = LANGUAGES[self.current_lang]
         selected_items = self.reg_tree.selection()
@@ -423,16 +425,17 @@ class PyCleanerApp:
             tags = self.reg_tree.item(item)['tags']
             subkey, val_name = tags[0], tags[1]
             try:
+                # Modificado para abrir a chave com direitos de gravação corretos e deletar o valor exato
                 key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, subkey, 0, winreg.KEY_SET_VALUE)
                 winreg.DeleteValue(key, val_name)
                 winreg.CloseKey(key)
-                self.reg_tree.delete(item)
             except Exception: pass
                 
+        # Atualiza a visualização do registro dinamicamente após excluir
+        self.scan_registry()
         self.status_var.set(lang['status_success'])
         messagebox.showinfo("PyCleaner", lang['status_success'])
 
-    # --- NOVA FUNÇÃO: LIMPEZA DE NAVEGADORES (DINÂMICA INTEGRADA) ---
     def clean_browsers(self):
         clear_cache = self.var_browser_cache.get()
         clear_data = self.var_browser_data.get()
@@ -444,15 +447,13 @@ class PyCleanerApp:
         data_targets = ['History', 'Cookies', 'Web Data', r'Network\Cookies', 'Login Data']
         
         for name, base_path in self.installed_browsers.items():
-            # Pula o navegador se o usuário não marcou o checkbox dele
             if not self.browser_vars.get(name, tk.BooleanVar()).get():
                 continue
                 
             if name == "Firefox":
-                # Limpeza Firefox
                 local_app_data = os.environ.get('LOCALAPPDATA', '')
                 ff_local = os.path.join(local_app_data, r"Mozilla\Firefox\Profiles") if local_app_data else ""
-                ff_roaming = base_path # A raiz retornada por get_installed_browsers para o FF
+                ff_roaming = base_path
                 
                 if clear_cache and os.path.exists(ff_local):
                     for profile in os.listdir(ff_local):
@@ -463,14 +464,12 @@ class PyCleanerApp:
                             
                 if clear_data and os.path.exists(ff_roaming):
                     for profile in os.listdir(ff_roaming):
-                        # Mantendo a segurança original: "places.sqlite" (Favoritos) é evitado de propósito.
                         for file in ['cookies.sqlite', 'formhistory.sqlite', 'downloads.sqlite', 'webappsstore.sqlite']:
                             target = os.path.join(ff_roaming, profile, file)
                             if os.path.exists(target):
                                 try: os.remove(target)
                                 except: pass
             else:
-                # Limpeza Família Chromium e Opera
                 if not os.path.exists(base_path): continue
                 
                 profiles = ['Default', ''] + [d for d in os.listdir(base_path) if d.startswith('Profile')]
@@ -493,11 +492,9 @@ class PyCleanerApp:
                                 try: os.remove(target)
                                 except: pass
 
-    # --- LIMPEZA DE DISCO & TWEAKS ---
     def run_disk_cleanup(self):
         lang = LANGUAGES[self.current_lang]
         
-        # Limpa o Windows
         if self.var_temp.get():
             paths = [os.environ.get('TEMP'), os.path.join(os.environ.get('SystemRoot', 'C:\\Windows'), 'Temp')]
             for p in paths:
@@ -514,11 +511,19 @@ class PyCleanerApp:
                     try: os.remove(os.path.join(p, item))
                     except: pass
                     
-        # Aciona o módulo de limpeza dinâmica dos Navegadores
         self.clean_browsers()
-        
         self.status_var.set(lang['status_success'])
         messagebox.showinfo("PyCleaner", lang['status_success'])
+
+    # --- NOVA FUNÇÃO: ATIVAR CLEANMGR ---
+    def run_cleanmgr(self):
+        lang = LANGUAGES[self.current_lang]
+        try:
+            # Executa de forma assíncrona para não travar a interface visual
+            threading.Thread(target=lambda: subprocess.run(["cleanmgr.exe", "/sagerun:1"], shell=True), daemon=True).start()
+            messagebox.showinfo("PyCleaner", "Cleanmgr iniciado! Acompanhe a janela do Windows.")
+        except Exception as e:
+            messagebox.showerror("PyCleaner", f"{lang['status_error']} {str(e)}")
 
     def run_tweaks(self):
         lang = LANGUAGES[self.current_lang]
