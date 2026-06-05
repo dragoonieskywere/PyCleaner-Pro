@@ -81,7 +81,7 @@ LANGUAGES = {
         'status_success': 'Operation completed successfully!',
         'status_error': 'Error: ',
         'admin_warn': 'Warning: Run as Administrator for full access.',
-        'about_text': "PyCleaner v3.0 (Advanced Edition)\n\nAn open-source utility for custom Windows optimization.\n\nDeveloped by: Gregório Severiano (Dragoonie)\n\nBuilt with Python and Tkinter"
+        'about_text': "PyCleaner v2.1 (Advanced Edition)\n\nAn open-source utility for custom Windows optimization.\n\nDeveloped by: Gregório Severiano (Dragoonie)\n\nBuilt with Python and Tkinter"
     }
 }
 
